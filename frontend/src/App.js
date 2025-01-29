@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { Modal } from 'bootstrap';
 
-const API_URL = `api`  
+const API_URL = `http://localhost:3002/api`  
 
 function App() {
   const [file, setFile] = useState(null);
@@ -510,6 +510,12 @@ function App() {
                     className="btn btn-warning btn-sm me-2"
                     data-bs-toggle="modal" 
                     data-bs-target="#rechazoModal"
+                    style={{  // Agregamos estilos explícitos
+                      padding: '0.25rem 0.5rem',
+                      fontSize: '0.875rem',
+                      visibility: 'visible',  // Forzamos la visibilidad
+                      display: 'inline-block' // Aseguramos que se muestre como bloque en línea
+                    }}
                   >
                     Rechazo
                   </button>
@@ -992,12 +998,19 @@ function App() {
         </div>
       </div>
 
-      {/* Agregar el modal de rechazo antes del cierre del componente */}
-      <div className="modal fade" id="rechazoModal" tabIndex="-1">
+      {/* Modal de Rechazo */}
+      <div 
+        className="modal fade" 
+        id="rechazoModal" 
+        tabIndex="-1" 
+        aria-labelledby="rechazoModalLabel" 
+        aria-hidden="true"
+        style={{ display: 'none' }} // Aseguramos que inicialmente esté oculto
+      >
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content">
             <div className="modal-header">
-              <h5 className="modal-title">Informar Rechazo</h5>
+              <h5 className="modal-title" id="rechazoModalLabel">Informar Rechazo</h5>
               <button 
                 type="button" 
                 className="btn-close" 
