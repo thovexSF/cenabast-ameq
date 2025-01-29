@@ -4,7 +4,9 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { Modal } from 'bootstrap';
 
-const API_URL = `api`  
+const API_URL = process.env.RAILWAY_ENVIRONMENT === 'development'
+    ? `https://cenabast-ameq-development.up.railway.app/api`
+    : `/api`;
 
 function App() {
   const [file, setFile] = useState(null);
