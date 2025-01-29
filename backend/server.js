@@ -5,9 +5,9 @@ const uploadRoutes = require('./routes/upload');
 const multer = require('multer');
 require('dotenv').config();
 
-const BASEURL = process.env.NODE_ENV === 'production' 
-    ? process.env.CENABAST_PRODUCTION_BASEURL 
-    : process.env.CENABAST_DEVELOPMENT_BASEURL;
+const BASEURL = process.env.RAILWAY_ENVIRONMENT === 'development'
+    ? process.env.CENABAST_DEVELOPMENT_BASEURL 
+    : process.env.CENABAST_PRODUCTION_BASEURL;
 
 const app = express();
 
@@ -58,6 +58,7 @@ app.use((err, req, res, next) => {
 const port = process.env.PORT || 3002;
 app.listen(port, () => {
     console.log(`Servidor corriendo en el puerto ${port}`);
-    console.log(`Ambiente: ${process.env.NODE_ENV}`);
+    console.log(`Ambiente Railway: ${process.env.RAILWAY_ENVIRONMENT}`);
+    console.log(`Node ENV: ${process.env.NODE_ENV}`);
     console.log(`URL Cenabast: ${BASEURL}`);
 });
