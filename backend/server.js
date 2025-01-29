@@ -19,13 +19,14 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Rutas de la API - con prefijo /api
 app.use('/api', uploadRoutes);
 
-// Servir archivos estáticos en producción
-if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, 'public')));
-    app.get('*', (req, res) => {
-        res.sendFile(path.join(__dirname, 'public', 'index.html'));
-    });
-}
+// Middleware para servir archivos estáticos
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Esta ruta DEBE ir después de todas las rutas de API
+// Maneja cualquier otra solicitud enviando el index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Manejo de errores de multer
 app.use((err, req, res, next) => {
