@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { Modal } from 'bootstrap';
 
-const API_URL = `http://localhost:3002/api`  
+const API_URL = `api`  
 
 function App() {
   const [file, setFile] = useState(null);
