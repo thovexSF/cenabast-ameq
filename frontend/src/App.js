@@ -961,7 +961,7 @@ function App() {
           <div className="modal-content">
             <div className="modal-header">
               <h5 className="modal-title" style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: '600' }}>
-            ¿Cómo usar esta aplicación?
+            ¿Para qué sirve esta aplicación?
           </h5>
               <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -970,25 +970,30 @@ function App() {
                 <div className="row mb-4">
                   <div className="col-12">
                     <h6 className="fw-bold text-primary">1. Informar Guía Despacho</h6>
-                    <p>Sube el archivo Excel exportado desde Bsale con las guías de despacho. El sistema procesará la información y la enviará a sistema Cenabast</p>
+                    <p>Sube el archivo Excel exportado desde Bsale con las guías de despacho. El sistema procesará la información y enviará el documento Cenabast, la Guía de Despacho, la fecha de la guia y el detalle de productos enviados como "Distribución" a sistema Cenabast</p>
                   </div>
                 </div>
                 <div className="row mb-4">
                   <div className="col-12">
                     <h6 className="fw-bold text-success">2. Informar Entrega</h6>
-                    <p>Para informar las entregas, subimos el archivo Excel "informe fechas recep.xls" de Cenabast donde aparecen las fechas de entrega para cada despacho. Esto actualizará para los documentos Cenabast que ahi se encuentren, la fecha de entrega. Para ingresar un </p>
+                    <p>Para informar las entregas, subimos el archivo Excel "informe fechas recep.xls" de Cenabast donde aparecen las fechas de entrega para cada despacho. Esto actualizará los movimientos de la distribucion en el sistema Cenabast para los doc_Cenabast que ya hayan sido previamente ingresados. Sistema valida que no haya movimiento anterior del mismo tipo antes de actualizar la información en sistema Cenabast. </p>
                   </div>
                 </div>
                 <div className="row mb-4">
                   <div className="col-12">
-                    <h6 className="fw-bold text-danger">3. Informar Factura</h6>
-                    <p>Finalmente, sube el archivo Excel con la información de las facturas emitidas. El sistema vinculará las facturas con las guías correspondientes.</p>
+                    <h6 className="fw-bold text-warning">3. Informar Rechazo</h6>
+                    <p>En caso de existir algun rechazo, este se puede informar en con el boton de rechazo en la pantalla principal, indicando el Doc Cenabast y la fecha de rechazo. No se puede informar un rechazo para un documento que ya fue informado como entregado.</p>                  </div>
+                </div>
+                <div className="row mb-4">
+                  <div className="col-12">
+                    <h6 className="fw-bold text-danger">4. Informar Factura</h6>
+                    <p>Para informar las facturas, se sube archivo Excel de facturación de Bsale (filtrado por docs Cenabast)con la información de las facturas emitidas. El sistema vinculará las facturas con los documentos Cenabast del informe y agregara esta información a cada Distribución. Si subimos el excel nuevamente con otra factura para un mismo documento Cenabast, el sistema actualizará la información de la factura anterior. Esto solo sirve si se ingreso mal por error, pero <span style={{ color: 'red', textTransform: 'uppercase' }}>si se quiere cambiar la factura con una nota de crédito de por medio (refacturación), se debe contactar a Cenabast, para que ellos autoricen el cambio.</span></p>
                   </div>
                 </div>
-                <div className="row">
+                <div className="row mb-4">
                   <div className="col-12">
-                    <h6 className="fw-bold text-secondary">4. Documento Cedible</h6>
-                    <p>Sube el PDF que contiene la guía de despacho firmada y la factura. Este documento es necesario para completar el proceso.</p>
+                    <h6 className="fw-bold text-secondary">5. Subir Documento Cedible</h6>
+                    <p>Sube el PDF que contiene la guía de despacho firmada y la factura (Se transforma a base64, como archivo codificado y se envía a Cenabast). Este documento es necesario para completar el proceso.</p>
                   </div>
                 </div>
               </div>
