@@ -7,12 +7,9 @@
   "license": "ISC",
   "description": "",
   "scripts": {
-    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
-    "start:backend": "cd backend && npm start",
-    "start:frontend": "cd frontend && npm start"
-  },
-  "devDependencies": {
-    "concurrently": "^6.2.0"
+    "start": "cd backend && npm start",
+    "install": "cd backend && npm install",
+    "build": "cd backend && npm run build"
   },
   "engines": {
     "node": ">=18.0.0"
