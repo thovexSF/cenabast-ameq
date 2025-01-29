@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import { Modal } from 'bootstrap';
 
-const API_URL = `/api`
+const API_URL = `http://localhost:3002/api`  
 
 function App() {
   const [file, setFile] = useState(null);
@@ -20,6 +22,11 @@ function App() {
   });
   const [lastUploadedDoc, setLastUploadedDoc] = useState(null);
   const [uploadError, setUploadError] = useState(null);
+  const [rechazoForm, setRechazoForm] = useState({
+    docCenabast: '',
+    fecha: ''
+  });
+  const [isProcessing, setIsProcessing] = useState(false);
 
   //Informar Guía Despacho
   const handleFileChange = (event) => {
@@ -325,12 +332,103 @@ function App() {
     });
   };
 
+  const handleShowModal = () => {
+    const modal = new Modal(document.getElementById('infoModalApp'));
+    modal.show();
+  };
+
+  // Agregar la función cleanupModal
+  const cleanupModal = () => {
+    // Remover todos los backdrops
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+      backdrop.remove();
+    });
+    
+    // Limpiar clases y estilos del body
+    document.body.classList.remove('modal-open');
+    document.body.removeAttribute('style');
+    
+    // Asegurarse que el modal esté cerrado y limpio
+    const modalElement = document.getElementById('rechazoModal');
+    if (modalElement) {
+      modalElement.classList.remove('show');
+      modalElement.style.display = 'none';
+      modalElement.setAttribute('aria-hidden', 'true');
+    }
+  };
+
+  const handleRechazoSubmit = async (e) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    
+    // Limpiar la tabla antes de procesar
+    setDispatches([]);
+    
+    try {
+      // Asegurarnos de que la fecha tenga el formato correcto
+      const fechaFormateada = rechazoForm.fecha.replace(/-/g, '');
+      
+      const response = await axios.post(`${API_URL}/informarRechazo`, {
+        Doc_Cenabast: parseInt(rechazoForm.docCenabast),
+        Fecha: fechaFormateada
+      });
+
+      if (response.data?.despachos) {
+        setDispatches(response.data.despachos.map(despacho => ({
+          ...despacho,
+          DescMovimiento: 3,
+          Fecha_Entrega: new Date(despacho.Fecha_Entrega).toLocaleDateString('es-CL')
+        })));
+        setActiveTable('dispatches');
+        
+        // Limpiar el formulario y modal
+        setRechazoForm({
+          docCenabast: '',
+          fecha: ''
+        });
+        cleanupModal();
+      }
+
+    } catch (error) {
+      console.error('Error al informar rechazo:', error);
+      
+      // Para errores 500, mostrar el mensaje completo del error
+      let errorMessage;
+      if (error.response?.status === 500) {
+        errorMessage = error.response.data.error || 
+                      error.response.data.Message ||
+                      error.response.data.message ||
+                      error.response.data;
+      } else {
+        errorMessage = error.response?.data?.message || 
+                      'Error al informar rechazo';
+      }
+
+      setDispatches([{
+        Doc_Cenabast: rechazoForm.docCenabast,
+        Fecha_Entrega: rechazoForm.fecha,
+        DescMovimiento: 3,
+        mensaje: errorMessage
+      }]);
+      setActiveTable('dispatches');
+      
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
-    <div className="App container-fluid mt-5 px-4">
-      <h2 className="text-center mb-4" style={{ 
-        fontFamily: 'Montserrat, sans-serif',
-        marginBottom: '2rem'
-      }}>
+    <div className="App container-fluid mt-5 px-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
+      <h2 
+        className="text-center mb-4" 
+        style={{ 
+          fontFamily: 'Montserrat, sans-serif',
+          marginBottom: '2rem',
+          fontWeight: '700',
+          cursor: 'pointer'
+        }}
+        onClick={handleShowModal}
+      >
         Informar Movimientos Cenabast
         <br/>
         <br/>
@@ -403,24 +501,32 @@ function App() {
         <div className="col-md-3">
           <div className="card h-100">
             <div className="card-header" style={{ backgroundColor: '#198754', color: 'white', position: 'relative' }}>
-              <h5 className="mb-0">
-                Informar Entrega
-                <button 
-                  type="button" 
-                  className="btn btn-link position-absolute" 
-                  style={{ 
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    right: '10px',
-                    padding: '0',
-                    color: 'white'
-                  }}
-                  data-bs-toggle="modal" 
-                  data-bs-target="#infoModalEntrega"
-                >
-                  <i className="bi bi-info-circle" style={{ fontSize: '1.2rem' }}></i>
-                </button>
-              </h5>
+              <div className="d-flex justify-content-between align-items-center">
+                <h5 className="mb-0">
+                  Informar Entrega
+                </h5>
+                <div>
+                  <button 
+                    className="btn btn-warning btn-sm me-2"
+                    data-bs-toggle="modal" 
+                    data-bs-target="#rechazoModal"
+                  >
+                    Rechazo
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn btn-link" 
+                    style={{ 
+                      padding: '0',
+                      color: 'white'
+                    }}
+                    data-bs-toggle="modal" 
+                    data-bs-target="#infoModalEntrega"
+                  >
+                    <i className="bi bi-info-circle" style={{ fontSize: '1.2rem' }}></i>
+                  </button>
+                </div>
+              </div>
             </div>
             <div className="card-body">
               <div className="mb-3"
@@ -621,15 +727,25 @@ function App() {
       {/* Tabla de resultados */}
       <div className="row mt-4">
         <div className="col-12">
-          <h3 className="text-center mb-4">Información subida</h3>
+          {(activeTable === 'dispatches' && dispatches && dispatches.length > 0) || 
+           lastUploadedDoc || 
+           uploadError ? (
+            <h3 className="text-center mb-4" style={{ 
+              fontFamily: 'Montserrat, sans-serif',
+              fontWeight: '600'
+            }}>
+              Información subida
+            </h3>
+          ) : null}
+          
           {uploadError && (
             <div className="alert alert-danger mb-3">
-                Error al subir documento cedible: {uploadError}
+              Error al subir documento cedible: {uploadError}
             </div>
           )}
           {lastUploadedDoc && (
             <div className="alert alert-success mb-3">
-                PDF con Factura y Guía de Despacho subido para Doc.Cenabast N°{lastUploadedDoc}
+              PDF con Factura y Guía de Despacho subido para Doc.Cenabast N°{lastUploadedDoc}
             </div>
           )}
           {activeTable === 'dispatches' && dispatches && dispatches.length > 0 && (
@@ -826,6 +942,125 @@ function App() {
                   height: '85vh'
                 }}
               />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal de información general */}
+      <div className="modal" id="infoModalApp" tabIndex="-1">
+        <div className="modal-dialog modal-lg modal-dialog-centered">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title" style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: '600' }}>
+            ¿Cómo usar esta aplicación?
+          </h5>
+              <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div className="modal-body">
+              <div className="container">
+                <div className="row mb-4">
+                  <div className="col-12">
+                    <h6 className="fw-bold text-primary">1. Informar Guía Despacho</h6>
+                    <p>Sube el archivo Excel exportado desde Bsale con las guías de despacho. El sistema procesará la información y la enviará a sistema Cenabast</p>
+                  </div>
+                </div>
+                <div className="row mb-4">
+                  <div className="col-12">
+                    <h6 className="fw-bold text-success">2. Informar Entrega</h6>
+                    <p>Para informar las entregas, subimos el archivo Excel "informe fechas recep.xls" de Cenabast donde aparecen las fechas de entrega para cada despacho. Esto actualizará para los documentos Cenabast que ahi se encuentren, la fecha de entrega. Para ingresar un </p>
+                  </div>
+                </div>
+                <div className="row mb-4">
+                  <div className="col-12">
+                    <h6 className="fw-bold text-danger">3. Informar Factura</h6>
+                    <p>Finalmente, sube el archivo Excel con la información de las facturas emitidas. El sistema vinculará las facturas con las guías correspondientes.</p>
+                  </div>
+                </div>
+                <div className="row">
+                  <div className="col-12">
+                    <h6 className="fw-bold text-secondary">4. Documento Cedible</h6>
+                    <p>Sube el PDF que contiene la guía de despacho firmada y la factura. Este documento es necesario para completar el proceso.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Agregar el modal de rechazo antes del cierre del componente */}
+      <div className="modal fade" id="rechazoModal" tabIndex="-1">
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title">Informar Rechazo</h5>
+              <button 
+                type="button" 
+                className="btn-close" 
+                data-bs-dismiss="modal" 
+                aria-label="Close"
+                disabled={isProcessing}
+              ></button>
+            </div>
+            <div className="modal-body">
+              <form onSubmit={handleRechazoSubmit}>
+                <div className="mb-3">
+                  <label className="form-label">Doc. Cenabast</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={rechazoForm.docCenabast}
+                    onChange={(e) => setRechazoForm(prev => ({
+                      ...prev,
+                      docCenabast: e.target.value
+                    }))}
+                    required
+                    disabled={isProcessing}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Fecha de Rechazo</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={rechazoForm.fecha}
+                    onChange={(e) => setRechazoForm(prev => ({
+                      ...prev,
+                      fecha: e.target.value
+                    }))}
+                    required
+                    disabled={isProcessing}
+                  />
+                </div>
+                <div className="d-grid gap-2">
+                  <button 
+                    type="submit" 
+                    className="btn btn-warning"
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Procesando...
+                      </>
+                    ) : (
+                      'Informar Rechazo'
+                    )}
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    data-bs-dismiss="modal"
+                    disabled={isProcessing}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

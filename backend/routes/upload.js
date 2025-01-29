@@ -30,6 +30,7 @@ const {
 const { generarDespachos } = require('../functions/guiasDespacho');
 const { readInvoiceFile } = require('../functions/Facturas');
 const { procesarArchivoEntrega } = require('../functions/FechaEntrega');
+const { informarRechazo } = require('../functions/Rechazos');
 
 // Ruta para subir y procesar guías de despacho
 router.post('/uploadGuiaDespacho', upload.single('file'), async (req, res) => {
@@ -131,7 +132,35 @@ router.post('/uploadEntrega', upload.single('file'), async (req, res) => {
     }
 });
 
+// Agregar nueva ruta específica para rechazos
+router.post('/informarRechazo', async (req, res) => {
+    try {
+        const token = await authenticate();
+        const { Doc_Cenabast, Fecha } = req.body;
 
+        const resultado = await informarRechazo(
+            Doc_Cenabast, 
+            { Fecha }, 
+            token
+        );
+
+        res.json({ 
+            despachos: [resultado],
+            status: resultado.mensaje.includes('exitosamente') ? 'success' : 'warning'
+        });
+
+    } catch (error) {
+        console.error('Error al procesar el rechazo:', error);
+        res.json({ 
+            despachos: [{
+                Doc_Cenabast: req.body.Doc_Cenabast,
+                Fecha_Entrega: req.body.Fecha,
+                mensaje: error.message
+            }],
+            status: 'warning'
+        });
+    }
+});
 // Ruta para subir y procesar facturas
 router.post('/uploadInvoice', upload.single('file'), async (req, res) => {
     console.log('Iniciando procesamiento de factura...');
@@ -256,5 +285,7 @@ router.post('/uploadDocument', async (req, res) => {
         });
     }
 });
+
+
 
 module.exports = router; 
