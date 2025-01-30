@@ -993,7 +993,7 @@ function App() {
                 <div className="row mb-4">
                   <div className="col-12">
                     <h6 className="fw-bold text-secondary">5. Subir Documento Cedible</h6>
-                    <p>Sube el PDF que contiene la guía de despacho firmada y la factura (Se transforma a base64, como archivo codificado y se envía a Cenabast). Este documento es necesario para completar el proceso.</p>
+                    <p>Sube el PDF que contiene la guía de despacho firmada y la factura (Se pueden subir hasta 10 archivos). Este documento es necesario para completar el proceso.</p>
                   </div>
                 </div>
               </div>
