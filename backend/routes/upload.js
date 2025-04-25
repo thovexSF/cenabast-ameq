@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const { listDriveDocuments, downloadDriveDocument } = require('../services/googleDriveService');
 
 // Configuración de multer con más opciones
-const upload = multer({
+const uploadMulter = multer({
     storage: multer.memoryStorage(),
     limits: {
         fileSize: 10 * 1024 * 1024, // 10MB max file size
@@ -33,7 +34,7 @@ const { procesarArchivoEntrega } = require('../functions/FechaEntrega');
 const { informarRechazo } = require('../functions/Rechazos');
 
 // Ruta para subir y procesar guías de despacho
-router.post('/uploadGuiaDespacho', upload.single('file'), async (req, res) => {
+router.post('/uploadGuiaDespacho', uploadMulter.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No se ha subido ningún archivo.' });
@@ -43,6 +44,7 @@ router.post('/uploadGuiaDespacho', upload.single('file'), async (req, res) => {
         console.log('Token obtenido:', token);
         
         const buffer = req.file.buffer;
+        
         const distribuciones = await generarDespachos(buffer);
         console.log('Distribuciones a procesar:', distribuciones.length);
         
@@ -82,7 +84,7 @@ router.post('/uploadGuiaDespacho', upload.single('file'), async (req, res) => {
       });      
 
 // Ruta para informar fechas de entrega
-router.post('/uploadEntrega', upload.single('file'), async (req, res) => {
+router.post('/uploadEntrega', uploadMulter.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'No se ha subido ningún archivo' });
@@ -162,7 +164,7 @@ router.post('/informarRechazo', async (req, res) => {
     }
 });
 // Ruta para subir y procesar facturas
-router.post('/uploadInvoice', upload.single('file'), async (req, res) => {
+router.post('/uploadInvoice', uploadMulter.single('file'), async (req, res) => {
     console.log('Iniciando procesamiento de factura...');
     
     if (!req.file) {
@@ -286,6 +288,46 @@ router.post('/uploadDocument', async (req, res) => {
     }
 });
 
+// Obtener lista de documentos de Drive
+router.get('/driveDocuments', async (req, res) => {
+    try {
+        const folderId = req.query.folderId;
+        const result = await listDriveDocuments(folderId);
+        res.json(result);
+    } catch (error) {
+        console.error('Error al obtener documentos de Drive:', error);
+        res.status(500).json({ error: 'Error al obtener documentos de Drive' });
+    }
+});
 
+// Subir documento desde Drive
+router.post('/uploadDriveDocument', async (req, res) => {
+    try {
+        const { fileId, fileName, docCenabast, rutProveedor } = req.body;
+        
+        // 1. Descargar temporalmente de Drive
+        const fileData = await downloadDriveDocument(fileId);
+        
+        // 2. Procesar inmediatamente (convertir a base64 y enviar a Cenabast)
+        const base64Document = Buffer.from(fileData).toString('base64');
+        
+        // 3. Enviar a Cenabast
+        const token = await authenticate();
+        const response = await subirDocumento({
+            Doc_Cenabast: parseInt(docCenabast),
+            Rut_Proveedor: rutProveedor,
+            Documento: base64Document
+        }, token);
+        
+        // 4. fileData se elimina automáticamente al salir del scope
+        res.json({
+            success: true,
+            message: 'Documento procesado exitosamente'
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 module.exports = router; 
