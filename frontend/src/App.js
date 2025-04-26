@@ -8,7 +8,7 @@ import $ from 'jquery';
 
 const API_URL = window.location.hostname.includes('development')
     ? `https://cenabast-ameq-development.up.railway.app/api`
-    : window.location.hostname === 'localhost'
+    : window.location.hostname === 'localhost' || window.location.hostname.match(/^192\.168\.|^10\.|^172\.(1[6-9]|2[0-9]|3[0-1])\./)
     ? 'http://localhost:3001/api'
     : '/api';
 
@@ -53,10 +53,12 @@ function App() {
       try {
         const response = await axios.get(`${API_URL}/environment`);
         console.log('Environment response:', response.data);
-        setEnvironment(response.data.environment === 'development' ? 'DEV' : 'PROD');
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname.match(/^192\.168\.|^10\.|^172\.(1[6-9]|2[0-9]|3[0-1])\./);
+        setEnvironment(response.data.environment === 'development' || isLocal ? 'DEV' : 'PROD');
       } catch (error) {
         console.error('Error al obtener el entorno:', error);
-        setEnvironment('PROD'); // Fallback a PROD si hay error
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname.match(/^192\.168\.|^10\.|^172\.(1[6-9]|2[0-9]|3[0-1])\./);
+        setEnvironment(isLocal ? 'DEV' : 'PROD');
       }
     };
     getEnvironment();
