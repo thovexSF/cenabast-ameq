@@ -1,10 +1,31 @@
+require('dotenv').config();
 const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
 
+// Verificar que las variables de entorno estén definidas
+const requiredEnvVars = [
+  'GOOGLE_CLIENT_EMAIL',
+  'GOOGLE_PRIVATE_KEY',
+  'GOOGLE_PROJECT_ID',
+  'GOOGLE_CLIENT_ID'
+];
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.error(`Error: La variable de entorno ${envVar} no está definida`);
+    process.exit(1);
+  }
+}
+
 // Configuración de autenticación
 const auth = new google.auth.GoogleAuth({
-    keyFile: path.join(__dirname, 'credentials.json'),
+    credentials: {
+        client_email: process.env.GOOGLE_CLIENT_EMAIL,
+        private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        project_id: process.env.GOOGLE_PROJECT_ID,
+        client_id: process.env.GOOGLE_CLIENT_ID
+    },
     scopes: ['https://www.googleapis.com/auth/drive']
 });
 
