@@ -12,7 +12,7 @@ function formatDate(excelDate) {
 
 // Función para extraer el número después de "DOC. VENTA"
 function extractDocVenta(text) {
-    const match = text.match(/DOC\. VENTA (\d+)/);
+    const match = text.match(/DOC\.\s*VENTA:?\s*(\d+)/);
     return match ? match[1] : null;
 }
 
