@@ -26,7 +26,7 @@ async function generarDespachos(buffer) {
 
 // Función para extraer DOC. VENTA y Cantidad desde la columna 'Otros Atributos'
 function parseOtrosAtributos(otrosAtributos) {
-    const docVentaRegex = /(Doc\.venta|DOC\.\s*VENTA)\s*(\d+)/gi;
+    const docVentaRegex = /(Doc\.venta|DOC\.\s*VENTA:?)\s*(\d+)/gi;
     const cantidadRegex = /(Cant\.|CANT\.)\s*(\d+)/g;
     const loteRegex = /LOTE:\s+(\S+)/gi;
 
