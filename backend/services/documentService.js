@@ -3,33 +3,34 @@ const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
 
-// Verificar que las variables de entorno estén definidas
-const requiredEnvVars = [
-  'GOOGLE_CLIENT_EMAIL',
-  'GOOGLE_PRIVATE_KEY',
-  'GOOGLE_PROJECT_ID',
-  'GOOGLE_CLIENT_ID'
-];
-
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    console.error(`Error: La variable de entorno ${envVar} no está definida`);
-    process.exit(1);
-  }
-}
-
-// Configuración de autenticación
-const auth = new google.auth.GoogleAuth({
-  credentials: {
-    client_email: process.env.GOOGLE_CLIENT_EMAIL,
-    private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    project_id: process.env.GOOGLE_PROJECT_ID,
-    client_id: process.env.GOOGLE_CLIENT_ID
-  },
-  scopes: ['https://www.googleapis.com/auth/drive']
+// Variables de Google Drive opcionales: no salir si faltan
+const requiredEnvVars = ['GOOGLE_CLIENT_EMAIL', 'GOOGLE_PRIVATE_KEY', 'GOOGLE_PROJECT_ID', 'GOOGLE_CLIENT_ID'];
+const hasAll = requiredEnvVars.every(name => {
+  const v = process.env[name];
+  return v && (typeof v !== 'string' || v.trim() !== '');
 });
 
-const drive = google.drive({ version: 'v3', auth });
+let auth = null;
+let drive = null;
+
+if (hasAll) {
+  try {
+    const pk = process.env.GOOGLE_PRIVATE_KEY;
+    const key = pk && typeof pk === 'string' ? pk.replace(/\\n/g, '\n') : undefined;
+    auth = new google.auth.GoogleAuth({
+      credentials: {
+        client_email: process.env.GOOGLE_CLIENT_EMAIL,
+        private_key: key,
+        project_id: process.env.GOOGLE_PROJECT_ID,
+        client_id: process.env.GOOGLE_CLIENT_ID
+      },
+      scopes: ['https://www.googleapis.com/auth/drive']
+    });
+    drive = google.drive({ version: 'v3', auth });
+  } catch (e) {
+    console.warn('documentService: Google Drive no inicializado:', e.message);
+  }
+}
 
 /**
  * Sube un documento a Google Drive
@@ -39,6 +40,7 @@ const drive = google.drive({ version: 'v3', auth });
  * @returns {Promise<Object>} Información del documento subido
  */
 const uploadDocument = async (docCenabast, rutProveedor, base64Document) => {
+    if (!drive) throw new Error('Google Drive no está configurado. Configure las variables de entorno.');
     try {
         // Convertir base64 a buffer
         const buffer = Buffer.from(base64Document, 'base64');
@@ -85,6 +87,7 @@ const uploadDocument = async (docCenabast, rutProveedor, base64Document) => {
  * @returns {Promise<Array>} Lista de documentos
  */
 const listDriveDocuments = async () => {
+    if (!drive) throw new Error('Google Drive no está configurado. Configure las variables de entorno.');
     try {
         const response = await drive.files.list({
             q: `'${process.env.GOOGLE_DRIVE_FOLDER_ID}' in parents and trashed = false`,
@@ -109,6 +112,7 @@ const listDriveDocuments = async () => {
  * @returns {Promise<Buffer>} Contenido del archivo
  */
 const downloadDriveDocument = async (fileId) => {
+    if (!drive) throw new Error('Google Drive no está configurado. Configure las variables de entorno.');
     try {
         const response = await drive.files.get({
             fileId: fileId,

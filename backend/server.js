@@ -7,31 +7,36 @@ require('dotenv').config();
 const { google } = require('googleapis');
 const driveRoutes = require('./routes/drive');
 
-// Verificar que las variables de entorno estén definidas
-const requiredEnvVars = [
-  'GOOGLE_CLIENT_EMAIL',
-  'GOOGLE_PRIVATE_KEY',
-  'GOOGLE_PROJECT_ID',
-  'GOOGLE_CLIENT_ID'
-];
+// Google Drive es opcional: solo configurar si están todas las variables
+const googleEnvVars = ['GOOGLE_CLIENT_EMAIL', 'GOOGLE_PRIVATE_KEY', 'GOOGLE_PROJECT_ID', 'GOOGLE_CLIENT_ID'];
+const hasGoogleDrive = googleEnvVars.every(name => {
+  const v = process.env[name];
+  return v && (typeof v !== 'string' || v.trim() !== '');
+});
 
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    console.error(`Error: La variable de entorno ${envVar} no está definida`);
-    process.exit(1);
+let auth = null;
+if (hasGoogleDrive) {
+  try {
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+    const processedKey = privateKey && typeof privateKey === 'string' ? privateKey.replace(/\\n/g, '\n') : undefined;
+    auth = new google.auth.GoogleAuth({
+      credentials: {
+        client_email: process.env.GOOGLE_CLIENT_EMAIL,
+        private_key: processedKey,
+        project_id: process.env.GOOGLE_PROJECT_ID,
+        client_id: process.env.GOOGLE_CLIENT_ID
+      },
+      scopes: ['https://www.googleapis.com/auth/drive']
+    });
+  } catch (err) {
+    console.warn('Google Drive: no se pudo inicializar auth:', err.message);
+    auth = null;
   }
 }
 
-// Configuración de autenticación
-const auth = new google.auth.GoogleAuth({
-  credentials: {
-    client_email: process.env.GOOGLE_CLIENT_EMAIL,
-    private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    project_id: process.env.GOOGLE_PROJECT_ID,
-    client_id: process.env.GOOGLE_CLIENT_ID
-  },
-  scopes: ['https://www.googleapis.com/auth/drive']
-});
+if (!hasGoogleDrive || !auth) {
+  console.warn('⚠️  Google Drive no configurado. Variables opcionales: GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY, GOOGLE_PROJECT_ID, GOOGLE_CLIENT_ID');
+}
 
 const BASEURL = process.env.REACT_APP_RAILWAY_ENVIRONMENT === 'development'
     ? process.env.CENABAST_DEVELOPMENT_BASEURL 
@@ -52,13 +57,16 @@ app.get('/api/environment', (req, res) => {
 });
 
 app.get('/api/driveDocuments', async (req, res) => {
+  if (!auth) {
+    return res.status(503).json({ error: 'Google Drive no está configurado. Configure las variables de entorno opcionales.' });
+  }
   try {
     const drive = google.drive({ version: 'v3', auth });
     const response = await drive.files.list({
       q: "mimeType='application/pdf'",
       fields: 'files(name)',
     });
-    const documents = response.data.files.map(file => file.name);
+    const documents = (response.data.files || []).map(file => file.name);
     res.json({ documents });
   } catch (error) {
     console.error('Error al obtener documentos de Drive:', error);

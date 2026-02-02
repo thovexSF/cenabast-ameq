@@ -3,40 +3,41 @@ const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
 
-// Verificar que las variables de entorno estén definidas
-const requiredEnvVars = [
-  'GOOGLE_CLIENT_EMAIL',
-  'GOOGLE_PRIVATE_KEY',
-  'GOOGLE_PROJECT_ID',
-  'GOOGLE_CLIENT_ID'
-];
-
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    console.error(`Error: La variable de entorno ${envVar} no está definida`);
-    process.exit(1);
-  }
-}
-
-// Configuración de autenticación
-const auth = new google.auth.GoogleAuth({
-    credentials: {
-        client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-        project_id: process.env.GOOGLE_PROJECT_ID,
-        client_id: process.env.GOOGLE_CLIENT_ID
-    },
-    scopes: ['https://www.googleapis.com/auth/drive']
+// Variables de Google Drive opcionales: no salir si faltan
+const requiredEnvVars = ['GOOGLE_CLIENT_EMAIL', 'GOOGLE_PRIVATE_KEY', 'GOOGLE_PROJECT_ID', 'GOOGLE_CLIENT_ID'];
+const hasAll = requiredEnvVars.every(name => {
+  const v = process.env[name];
+  return v && (typeof v !== 'string' || v.trim() !== '');
 });
 
-// Inicializar el servicio de Drive
-const drive = google.drive({ version: 'v3', auth });
+let auth = null;
+let drive = null;
+
+if (hasAll) {
+  try {
+    const pk = process.env.GOOGLE_PRIVATE_KEY;
+    const key = pk && typeof pk === 'string' ? pk.replace(/\\n/g, '\n') : undefined;
+    auth = new google.auth.GoogleAuth({
+      credentials: {
+        client_email: process.env.GOOGLE_CLIENT_EMAIL,
+        private_key: key,
+        project_id: process.env.GOOGLE_PROJECT_ID,
+        client_id: process.env.GOOGLE_CLIENT_ID
+      },
+      scopes: ['https://www.googleapis.com/auth/drive']
+    });
+    drive = google.drive({ version: 'v3', auth });
+  } catch (e) {
+    console.warn('driveService: Google Drive no inicializado:', e.message);
+  }
+}
 
 // ID de la carpeta de Drive donde están los documentos
 const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || '11GFsUKHBvxUUY4q0rTF0iNP5oGj-qPhT';
 
 // Función para listar documentos en la carpeta
 async function listDriveDocuments() {
+    if (!drive) throw new Error('Google Drive no está configurado. Configure las variables de entorno.');
     try {
         console.log('Iniciando búsqueda en Drive...');
         console.log('FOLDER_ID:', FOLDER_ID);
@@ -81,6 +82,7 @@ async function listDriveDocuments() {
 
 // Función para descargar un documento específico
 async function downloadDriveDocument(fileName) {
+    if (!drive) throw new Error('Google Drive no está configurado. Configure las variables de entorno.');
     try {
         if (!FOLDER_ID) {
             throw new Error('GOOGLE_DRIVE_FOLDER_ID no está definido en las variables de entorno');
