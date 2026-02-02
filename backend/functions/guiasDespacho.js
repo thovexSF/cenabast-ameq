@@ -71,7 +71,7 @@ function formatDate(excelDate) {
     const month = String(date.m).padStart(2, '0');
     const year = date.y;
 
-    return `${day}-${month}-${year}`;
+    return `${month}-${day}-${year}`;
 }
 
 // Función para generar el JSON de salida
